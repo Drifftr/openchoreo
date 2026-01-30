@@ -30,8 +30,8 @@ spec:
     parameters:
       replicas: "integer | default=1"
       imagePullPolicy: "string | default=IfNotPresent"
-      port: "integer | default=80"
-      exposed: "boolean | default=false | description='Expose the service externally' | title='Expose Service'"
+      exposed: "boolean | default=false"
+      containerName: "string | default=main"
 
     envOverrides:
       resources: "ResourceRequirements | default={}"
@@ -88,9 +88,11 @@ spec:
           type: ClusterIP
           selector: ${metadata.podSelectors}
           ports:
-            - name: http
-              port: 80
-              targetPort: ${parameters.port}
+            - forEach: ${workload.endpoints}
+              var: endpoint
+              name: ${metadata.name}-${endpoint.key}
+              port: ${endpoint.value.port}
+              targetPort: ${endpoint.value.port}
               protocol: TCP
     - forEach: ${workload.endpoints}
       var: endpoint
@@ -101,7 +103,7 @@ spec:
         kind: HTTPRoute
         metadata:
           labels: ${metadata.labels}
-          name: ${metadata.name}.${endpoint.key}
+          name: ${metadata.name}-${endpoint.key}
           namespace: ${metadata.namespace}
         spec:
           parentRefs:
